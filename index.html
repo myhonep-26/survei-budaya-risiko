@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>Survei Budaya Risiko — PT Kereta Api Logistik</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#F3F5F8;--ink:#18222F;--muted:#667085;--line:#E3E7ED;--brand:#1F3A5F;--brand2:#2D5A8C;--accent:#E07B2E;--ok:#1C7343}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,Segoe UI,Roboto,sans-serif;font-size:15.5px;line-height:1.5}
+.top{background:var(--brand);color:#fff;padding:14px 16px}
+.top .wrap{max-width:720px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.top b{font-size:15px;letter-spacing:.3px}.top small{display:block;opacity:.8;font-size:12px}
+.prog{height:4px;background:rgba(255,255,255,.15)}.prog i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+main{max-width:720px;margin:0 auto;padding:18px 16px 110px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+h1{font-size:22px;margin:0 0 8px;color:var(--brand);font-weight:800}
+h2{font-size:13px;margin:0 0 14px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+p{margin:0 0 12px}
+.note{background:#F2F6FB;border:1px solid #D6E2F0;border-radius:12px;padding:12px 14px;font-size:14px;margin:14px 0}
+.note b{color:var(--brand)}
+.q{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;transition:border .2s}
+.q.miss{border-color:#E5A79B;box-shadow:0 0 0 3px rgba(168,50,31,.08)}
+.q .t{font-weight:600;margin-bottom:12px}
+.q .t span{color:var(--muted);font-weight:700;font-size:12px;margin-right:6px}
+.scale{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.scale button{border:1.5px solid #D0D5DD;background:#fff;border-radius:10px;padding:10px 2px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font:inherit;color:#344054}
+.scale button b{font-size:17px}
+.scale button small{font-size:10.5px;line-height:1.2;text-align:center;color:var(--muted)}
+.scale button.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.scale button.on small{color:#D6E2F0}
+.na{margin-top:8px;width:100%;border:1.5px dashed #D0D5DD;background:#fff;border-radius:10px;padding:9px;font:inherit;font-size:13.5px;color:#475467;cursor:pointer}
+.na.on{background:#475467;border-color:#475467;color:#fff;border-style:solid}
+textarea{width:100%;border:1px solid #D0D5DD;border-radius:10px;padding:12px;font:inherit;resize:vertical;min-height:110px;outline:none}
+textarea:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(45,90,140,.15)}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.bar .wrap{max-width:720px;margin:0 auto;display:flex;gap:10px;align-items:center}
+.btn{border:0;border-radius:12px;padding:13px 18px;font:inherit;font-weight:700;cursor:pointer}
+.btn.primary{background:var(--brand);color:#fff;flex:1}
+.btn.ghost{background:#F2F4F7;color:#344054}
+.btn:disabled{opacity:.5}
+.err{color:#A8321F;font-size:13.5px;margin-top:8px;min-height:18px}
+.center{text-align:center;padding:40px 20px}
+.big{font-size:44px;line-height:1;margin-bottom:10px}
+.muted{color:var(--muted)}
+.legend{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:-4px 0 14px}
+@media(max-width:420px){.scale button small{font-size:9.5px}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap"><div><b>SURVEI BUDAYA RISIKO</b><small>PT Kereta Api Logistik</small></div><small id="step"></small></div></div>
+<div class="prog"><i id="pbar"></i></div>
+<main id="main"><div class="card center"><p class="muted">Memuat survei…</p></div></main>
+<div class="bar" id="bar" style="display:none"><div class="wrap">
+  <button class="btn ghost" id="back">Kembali</button>
+  <button class="btn primary" id="next">Lanjut</button>
+</div></div>
+
+<script>
+/* ===== PENGATURAN: tempel URL Web App (/exec) dari Apps Script ===== */
+var API_URL = 'https://script.google.com/macros/s/AKfycbzO-xScwvj8tZubIOpAPhdTEGRazhWwNZZGNt_8HAfxJQLgiuQN-zZzNuHfCcG1VHTh/exec';
+/* =================================================================== */
+var TOKEN = (new URLSearchParams(location.search).get('t') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
+function api(body) {
+  // Content-Type text/plain agar tidak memicu preflight CORS; Apps Script mengembalikan JSON
+  return fetch(API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body), redirect: 'follow' })
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+var LBL = ['Sangat Tidak Setuju', 'Tidak Setuju', 'Netral', 'Setuju', 'Sangat Setuju'];
+var S = { ins: null, page: -1, pages: [], ans: {}, o1: '', o2: '' };
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function save() { try { localStorage.setItem('sbr_' + TOKEN, JSON.stringify({ ans: S.ans, o1: S.o1, o2: S.o2, page: S.page })); } catch (e) {} }
+function restore() { try { var d = JSON.parse(localStorage.getItem('sbr_' + TOKEN) || 'null'); if (d) { S.ans = d.ans || {}; S.o1 = d.o1 || ''; S.o2 = d.o2 || ''; return d.page; } } catch (e) {} return -1; }
+function clearSaved() { try { localStorage.removeItem('sbr_' + TOKEN); } catch (e) {} }
+function msg(icon, title, text) {
+  $('#bar').style.display = 'none'; $('#step').textContent = '';
+  $('#main').innerHTML = '<div class="card center"><div class="big">' + icon + '</div><h1>' + esc(title) + '</h1><p class="muted">' + esc(text) + '</p></div>';
+}
+
+(TOKEN ? api({ aksi: 'init', t: TOKEN }) : Promise.resolve({ ok: false, pesan: 'Tautan survei tidak lengkap. Pastikan Anda membuka tautan dari email undangan.' })).then(function (r) {
+  if (r.error) throw new Error(r.error);
+  if (!r.ok) { msg(r.selesai ? '✓' : 'ⓘ', r.selesai ? 'Terima kasih' : 'Survei tidak tersedia', r.pesan); return; }
+  S.ins = r.instrumen; S.periode = r.periode; S.selesai = r.selesai;
+  // satu halaman per aspek, halaman terakhir = pertanyaan terbuka
+  S.ins.aspek.forEach(function (a) {
+    var items = S.ins.butir.filter(function (b) { return b.aspek === a.kode; });
+    if (items.length) S.pages.push({ type: 'likert', items: items });
+  });
+  S.pages.push({ type: 'open' });
+  var p = restore();
+  if (p >= 0 && p < S.pages.length) { S.page = p; render(); } else intro();
+}).catch(function (e) { msg('!', 'Terjadi kendala', 'Tidak dapat memuat survei. Periksa koneksi internet lalu muat ulang halaman ini.'); });
+
+function intro() {
+  S.page = -1;
+  $('#step').textContent = ''; $('#pbar').style.width = '0';
+  $('#main').innerHTML = '<div class="card"><h2>Periode ' + esc(S.periode) + '</h2><h1>Survei Budaya Risiko</h1>' +
+    '<p>Bapak/Ibu yang kami hormati,</p>' +
+    '<p>Unit Manajemen Risiko mengundang Anda mengisi Survei Budaya Risiko KALOG. Survei ini mengukur bagaimana manajemen risiko dijalankan dalam pekerjaan sehari-hari, dan hasilnya digunakan untuk menyusun program budaya risiko tahun depan.</p>' +
+    '<p><b>Tidak ada jawaban benar atau salah.</b> Jawablah sesuai yang Anda alami, bukan yang seharusnya.</p>' +
+    '<div class="note"><b>Anonim.</b> Jawaban Anda tidak disimpan bersama nama atau email, dan hasil hanya dilaporkan per kelompok minimal 5 orang.</div>' +
+    '<p class="muted">Waktu pengisian ±10 menit · ' + S.ins.butir.length + ' pernyataan dan ' + S.ins.terbuka.length + ' pertanyaan terbuka · Batas pengisian ' + esc(S.selesai) + '. Jawaban tersimpan otomatis di perangkat ini bila Anda berhenti sejenak.</p></div>';
+  $('#bar').style.display = 'block'; $('#back').style.display = 'none'; $('#next').textContent = 'Mulai';
+}
+
+function render() {
+  var pg = S.pages[S.page], total = S.pages.length;
+  $('#step').textContent = 'Bagian ' + (S.page + 1) + ' dari ' + total;
+  $('#pbar').style.width = Math.round(S.page / total * 100) + '%';
+  $('#back').style.display = 'inline-block';
+  $('#next').textContent = S.page === total - 1 ? 'Kirim Jawaban' : 'Lanjut';
+  var h = '';
+  if (pg.type === 'likert') {
+    h += '<h2>Bagian ' + (S.page + 1) + '</h2><div class="legend"><span>1 = Sangat Tidak Setuju</span><span>5 = Sangat Setuju</span></div>';
+    pg.items.forEach(function (b) {
+      var v = S.ans[b.kode];
+      h += '<div class="q" id="q_' + b.kode + '"><div class="t">' + esc(b.teks) + '</div><div class="scale">' +
+        [1, 2, 3, 4, 5].map(function (n) { return '<button type="button" data-k="' + b.kode + '" data-v="' + n + '" class="' + (v === n ? 'on' : '') + '"><b>' + n + '</b><small>' + LBL[n - 1] + '</small></button>'; }).join('') + '</div>' +
+        (b.na ? '<button type="button" class="na' + (v === 0 ? ' on' : '') + '" data-k="' + b.kode + '" data-v="0">Saya belum pernah mengikuti pelatihan manajemen risiko</button>' : '') + '</div>';
+    });
+  } else {
+    h += '<h2>Bagian terakhir</h2><div class="card"><p><b>' + esc(S.ins.terbuka[0].teks) + '</b></p><textarea id="o1" maxlength="1500" placeholder="Tuliskan pendapat Anda (opsional)">' + esc(S.o1) + '</textarea>' +
+      '<p style="margin-top:16px"><b>' + esc(S.ins.terbuka[1].teks) + '</b></p><textarea id="o2" maxlength="1500" placeholder="Tuliskan usulan Anda (opsional)">' + esc(S.o2) + '</textarea>' +
+      '<p class="muted" style="font-size:13px;margin-top:10px">Mohon tidak menuliskan nama atau informasi yang dapat mengidentifikasi Anda maupun orang lain.</p><div class="err" id="err"></div></div>';
+  }
+  $('#main').innerHTML = h;
+  window.scrollTo(0, 0);
+  if (pg.type === 'open') {
+    $('#o1').addEventListener('input', function (e) { S.o1 = e.target.value; save(); });
+    $('#o2').addEventListener('input', function (e) { S.o2 = e.target.value; save(); });
+  }
+}
+
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-k]'); if (!b) return;
+  var k = b.getAttribute('data-k'), v = Number(b.getAttribute('data-v'));
+  S.ans[k] = v; save();
+  var q = $('#q_' + k);
+  q.classList.remove('miss');
+  q.querySelectorAll('[data-k]').forEach(function (x) { x.classList.toggle('on', Number(x.getAttribute('data-v')) === v); });
+});
+
+$('#back').addEventListener('click', function () { if (S.page <= 0) intro(); else { S.page--; save(); render(); } });
+$('#next').addEventListener('click', function () {
+  if (S.page === -1) { S.page = 0; save(); render(); return; }
+  var pg = S.pages[S.page];
+  if (pg.type === 'likert') {
+    var miss = pg.items.filter(function (b) { return S.ans[b.kode] === undefined; });
+    if (miss.length) {
+      miss.forEach(function (b) { $('#q_' + b.kode).classList.add('miss'); });
+      $('#q_' + miss[0].kode).scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    S.page++; save(); render(); return;
+  }
+  // kirim
+  var btn = $('#next'); btn.disabled = true; btn.textContent = 'Mengirim…';
+  api({ aksi: 'kirim', t: TOKEN, jawaban: S.ans, o1: S.o1, o2: S.o2 }).then(function (r) {
+    if (!r.ok) throw new Error(r.error || 'Gagal mengirim.');
+    clearSaved(); $('#pbar').style.width = '100%';
+    msg('✓', 'Terima kasih', 'Jawaban Anda telah kami terima. Partisipasi Anda membantu memperkuat budaya risiko di KALOG.');
+  }).catch(function (er) {
+    btn.disabled = false; btn.textContent = 'Kirim Jawaban';
+    var m = String((er && er.message) || er).replace(/^Error:\s*/, '');
+    if (/fetch|HTTP|network|Load failed/i.test(m)) m = 'Koneksi terputus.';
+    var el = $('#err'); if (el) el.textContent = m + ' Jawaban Anda masih tersimpan di perangkat ini; silakan coba kirim lagi.';
+  });
+});
+</script>
+</body>
+</html>
