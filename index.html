@@ -36,6 +36,12 @@ p{margin:0 0 12px}
 .na.on{background:#475467;border-color:#475467;color:#fff;border-style:solid}
 textarea{width:100%;border:1px solid #D0D5DD;border-radius:10px;padding:12px;font:inherit;resize:vertical;min-height:110px;outline:none}
 textarea:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(45,90,140,.15)}
+.tbar{position:sticky;top:0;z-index:5;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 1px 3px rgba(16,24,40,.06)}
+.tbar b{font-size:20px;font-variant-numeric:tabular-nums}.tbar .low{color:#A8321F}
+.tq .opt{display:flex;gap:10px;align-items:flex-start;width:100%;text-align:left;border:1.5px solid #D0D5DD;background:#fff;border-radius:10px;padding:10px 12px;margin-top:8px;font:inherit;color:#344054;cursor:pointer}
+.tq .opt b{min-width:20px}.tq .opt.on{background:var(--brand);border-color:var(--brand);color:#fff}
+.prg{display:flex;gap:8px;margin:12px 0}.prg span{flex:1;height:8px;border-radius:6px;background:#E3E7ED}.prg span.ok{background:var(--ok)}
+.score{font-size:56px;font-weight:800;color:var(--brand);line-height:1}
 .bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
 .bar .wrap{max-width:720px;margin:0 auto;display:flex;gap:10px;align-items:center}
 .btn{border:0;border-radius:12px;padding:13px 18px;font:inherit;font-weight:700;cursor:pointer}
@@ -63,6 +69,7 @@ textarea:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(45,90,140,.1
 /* ===== PENGATURAN: tempel URL Web App (/exec) dari Apps Script ===== */
 var API_URL = 'https://script.google.com/macros/s/AKfycbzO-xScwvj8tZubIOpAPhdTEGRazhWwNZZGNt_8HAfxJQLgiuQN-zZzNuHfCcG1VHTh/exec';
 /* =================================================================== */
+var TES = (new URLSearchParams(location.search).get('tes') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
 var TOKEN = (new URLSearchParams(location.search).get('t') || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 40);
 function api(body) {
   // Content-Type text/plain agar tidak memicu preflight CORS; Apps Script mengembalikan JSON
@@ -81,7 +88,7 @@ function msg(icon, title, text) {
   $('#main').innerHTML = '<div class="card center"><div class="big">' + icon + '</div><h1>' + esc(title) + '</h1><p class="muted">' + esc(text) + '</p></div>';
 }
 
-(TOKEN ? api({ aksi: 'init', t: TOKEN }) : Promise.resolve({ ok: false, pesan: 'Tautan survei tidak lengkap. Pastikan Anda membuka tautan dari email undangan.' })).then(function (r) {
+if (TES) tesBoot(); else (TOKEN ? api({ aksi: 'init', t: TOKEN }) : Promise.resolve({ ok: false, pesan: 'Tautan survei tidak lengkap. Pastikan Anda membuka tautan dari email undangan.' })).then(function (r) {
   if (r.error) throw new Error(r.error);
   if (!r.ok) { msg(r.selesai ? '✓' : 'ⓘ', r.selesai ? 'Terima kasih' : 'Survei tidak tersedia', r.pesan); return; }
   S.ins = r.instrumen; S.periode = r.periode; S.selesai = r.selesai;
@@ -163,6 +170,12 @@ $('#next').addEventListener('click', function () {
     if (!r.ok) throw new Error(r.error || 'Gagal mengirim.');
     clearSaved(); $('#pbar').style.width = '100%';
     msg('✓', 'Terima kasih', 'Jawaban Anda telah kami terima. Partisipasi Anda membantu memperkuat budaya risiko di KALOG.');
+    if (r.tes) {
+      $('#main').insertAdjacentHTML('beforeend', '<div class="card" style="margin-top:14px"><h2>Langkah berikutnya</h2><h1 style="font-size:19px">Tes Pemahaman Manajemen Risiko</h1>' +
+        '<p>Bagian survei (anonim) telah selesai. Anda juga terdaftar sebagai peserta <b>Tes Pemahaman Manajemen Risiko</b>. Berbeda dengan survei, tes ini dinilai per peserta.</p>' +
+        '<p class="muted" style="font-size:14px">3 sesi × 10 soal, 15 menit per sesi. Anda dapat mengerjakannya sekarang atau nanti melalui tautan yang sama yang juga akan dikirim lewat email.</p>' +
+        '<a class="btn primary" style="display:block;text-align:center;text-decoration:none" href="?tes=' + encodeURIComponent(r.tes) + '">Lanjut ke Tes Pemahaman</a></div>');
+    }
   }).catch(function (er) {
     btn.disabled = false; btn.textContent = 'Kirim Jawaban';
     var m = String((er && er.message) || er).replace(/^Error:\s*/, '');
@@ -170,6 +183,79 @@ $('#next').addEventListener('click', function () {
     var el = $('#err'); if (el) el.textContent = m + ' Jawaban Anda masih tersimpan di perangkat ini; silakan coba kirim lagi.';
   });
 });
+
+/* =================== TES PEMAHAMAN MANAJEMEN RISIKO =================== */
+var T = { st: null, ans: {}, timer: null, end: 0, kirim: false, antre: {} };
+function tesHeader() { document.querySelector('.top b').textContent = 'TES PEMAHAMAN MANAJEMEN RISIKO'; document.title = 'Tes Pemahaman Manajemen Risiko — PT Kereta Api Logistik'; }
+function tesBoot() {
+  tesHeader(); $('#bar').style.display = 'none';
+  api({ aksi: 'tesInit', tes: TES }).then(tesRender).catch(function () { msg('!', 'Terjadi kendala', 'Tidak dapat memuat tes. Periksa koneksi internet lalu muat ulang halaman ini.'); });
+}
+function tesProg(st) { var h = '<div class="prg">'; for (var i = 1; i <= st.sesiTotal; i++) h += '<span class="' + (i <= st.sesiSelesai ? 'ok' : '') + '"></span>'; return h + '</div>'; }
+function tesRender(st) {
+  if (st.error) { msg('!', 'Terjadi kendala', st.error); return; }
+  if (!st.ok) { msg('ⓘ', 'Tes tidak tersedia', st.pesan); return; }
+  T.st = st; clearInterval(T.timer);
+  $('#step').textContent = st.status === 'Selesai' ? 'Selesai' : 'Sesi ' + Math.min(st.sesiSelesai + (st.aktif ? 0 : 1), st.sesiTotal) + ' dari ' + st.sesiTotal;
+  $('#pbar').style.width = Math.round(st.sesiSelesai / st.sesiTotal * 100) + '%';
+  if (st.status === 'Selesai') {
+    $('#main').innerHTML = '<div class="card center"><h2>Tes selesai</h2><div class="score">' + String(st.nilai).replace('.', ',') + '</div><p class="muted" style="margin-top:8px">Nilai Anda (skala 0–100) · ' + st.benar + ' dari ' + st.jumlahSoal + ' soal benar</p>' +
+      '<div class="note" style="text-align:left">' + (st.memadai ? '<b>Memadai.</b> Nilai Anda mencapai batas ' + st.batas + '.' : '<b>Belum mencapai batas ' + st.batas + '.</b> Hasil ini dipakai Unit Manajemen Risiko untuk menyusun program penguatan pemahaman, bukan untuk penilaian kinerja.') + '</div>' +
+      '<p class="muted" style="font-size:13.5px">Terima kasih atas partisipasi Anda. Kunci jawaban tidak ditampilkan untuk menjaga kerahasiaan soal.</p></div>';
+    return;
+  }
+  if (st.aktif) { tesSesi(st.aktif); return; }
+  var next = st.sesiSelesai + 1;
+  $('#main').innerHTML = '<div class="card"><h2>' + (st.sesiSelesai ? 'Lanjutkan tes' : 'Tes Pemahaman Manajemen Risiko') + '</h2><h1>' + esc(st.nama) + '</h1>' + tesProg(st) +
+    (st.sesiSelesai ? '<p><b>' + st.sesiSelesai + ' dari ' + st.sesiTotal + ' sesi selesai.</b> Anda dapat melanjutkan sekarang atau nanti melalui tautan yang sama' + (st.batasWaktu ? ' sampai ' + esc(st.batasWaktu) : '') + '.</p>'
+      : '<p>Tes ini mengukur pemahaman manajemen risiko jajaran manajer, sebagai dasar program penguatan kapabilitas risiko perusahaan.</p>') +
+    '<div class="note"><b>Ketentuan</b><br>• ' + st.sesiTotal + ' sesi × ' + st.perSesi + ' soal pilihan ganda (A–E), <b>' + st.menit + ' menit per sesi</b>.<br>• Waktu sesi berjalan terus sejak sesi dimulai, termasuk bila halaman ditutup.<br>• Jeda hanya dapat dilakukan <b>di antara sesi</b>. Jawaban sesi yang sudah dikirim tidak dapat diubah.<br>• Kerjakan secara mandiri. Soal dan urutan pilihan berbeda untuk setiap peserta.</div>' +
+    '<button class="btn primary" style="width:100%" id="tmulai">Mulai Sesi ' + next + '</button><div class="err" id="terr"></div></div>';
+  $('#tmulai').onclick = function () {
+    if (!confirm('Mulai Sesi ' + next + '? Waktu ' + st.menit + ' menit akan berjalan dan tidak dapat dihentikan.')) return;
+    this.disabled = true; this.textContent = 'Memuat soal…';
+    api({ aksi: 'tesMulai', tes: TES }).then(tesRender).catch(function () { $('#terr').textContent = 'Koneksi terputus. Coba lagi.'; $('#tmulai').disabled = false; $('#tmulai').textContent = 'Mulai Sesi ' + next; });
+  };
+}
+function tesSesi(a) {
+  T.ans = {}; a.soal.forEach(function (q) { if (q.pilih) T.ans[q.kode] = q.pilih; });
+  T.end = Date.now() + a.sisaDetik * 1000; T.kirim = false;
+  var h = '<div class="tbar"><span>Sesi ' + a.sesi + ' dari ' + T.st.sesiTotal + '</span><span>Sisa waktu <b id="tclock">--:--</b></span></div>';
+  a.soal.forEach(function (q) {
+    h += '<div class="q tq" id="tq_' + q.kode + '"><div class="t"><span>' + q.no + '.</span>' + esc(q.teks) + '</div>' +
+      q.opsi.map(function (o, i) { return '<button type="button" class="opt' + (T.ans[q.kode] === o.id ? ' on' : '') + '" data-tk="' + q.kode + '" data-tv="' + o.id + '"><b>' + 'ABCDE'[i] + '.</b><span>' + esc(o.teks) + '</span></button>'; }).join('') + '</div>';
+  });
+  h += '<div class="card"><p class="muted" style="font-size:14px;margin:0 0 10px">Jawaban tersimpan otomatis setiap kali Anda memilih. Klik tombol di bawah setelah selesai; sesi juga dikirim otomatis saat waktu habis.</p><button class="btn primary" style="width:100%" id="tkirim">Kirim Sesi ' + a.sesi + '</button><div class="err" id="terr"></div></div>';
+  $('#main').innerHTML = h; window.scrollTo(0, 0);
+  document.querySelectorAll('[data-tk]').forEach(function (b) { b.onclick = function () {
+    if (T.kirim) return;
+    var k = b.getAttribute('data-tk'), v = b.getAttribute('data-tv'); T.ans[k] = v;
+    document.querySelectorAll('[data-tk="' + k + '"]').forEach(function (x) { x.classList.toggle('on', x === b); });
+    T.antre[k] = v; api({ aksi: 'tesJawab', tes: TES, kode: k, pilih: v }).then(function (r) { if (r.ok && T.antre[k] === v) delete T.antre[k]; if (r.habis) tesKirim(true); }).catch(function () {});
+  }; });
+  $('#tkirim').onclick = function () {
+    var kosong = a.soal.filter(function (q) { return !T.ans[q.kode]; }).length;
+    if (!confirm(kosong ? kosong + ' soal belum dijawab dan akan dinilai salah. Kirim Sesi ' + a.sesi + '?' : 'Kirim Sesi ' + a.sesi + '? Jawaban tidak dapat diubah setelah dikirim.')) return;
+    tesKirim(false);
+  };
+  function tick() {
+    var d = Math.max(0, Math.round((T.end - Date.now()) / 1000)), el = $('#tclock'); if (!el) return clearInterval(T.timer);
+    el.textContent = Math.floor(d / 60) + ':' + ('0' + d % 60).slice(-2); el.classList.toggle('low', d <= 60);
+    if (d <= 0) tesKirim(true);
+  }
+  tick(); T.timer = setInterval(tick, 1000);
+}
+function tesKirim(otomatis) {
+  if (T.kirim) return; T.kirim = true; clearInterval(T.timer);
+  var b = $('#tkirim'); if (b) { b.disabled = true; b.textContent = otomatis ? 'Waktu habis, mengirim…' : 'Mengirim…'; }
+  var coba = 0;
+  (function go() {
+    api({ aksi: 'tesSelesaiSesi', tes: TES, jawaban: T.ans }).then(tesRender).catch(function () {
+      if (++coba < 4) return setTimeout(go, 2500);
+      var e = $('#terr'); if (e) e.textContent = 'Koneksi terputus. Jawaban yang sudah dipilih telah tersimpan otomatis. Muat ulang halaman ini untuk melanjutkan.';
+    });
+  })();
+}
 </script>
 </body>
 </html>
